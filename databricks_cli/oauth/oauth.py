@@ -58,16 +58,17 @@ def token_urlsafe(nbytes=32):
 # This could be datetime.timezone.utc in Python 3
 class UTCTimeZone(tzinfo):
     """UTC"""
+
     def utcoffset(self, dt):
-        #pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return timedelta(0)
 
     def tzname(self, dt):
-        #pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return "UTC"
 
     def dst(self, dt):
-        #pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         return timedelta(0)
 
 
@@ -87,7 +88,8 @@ def get_redirect_url(port=REDIRECT_PORT):
 
 
 def fetch_well_known_config(idp_url):
-    known_config_url = "{idp_url}/.well-known/openid-configuration".format(idp_url=idp_url)
+    known_config_url = "{idp_url}/.well-known/openid-configuration".format(
+        idp_url=idp_url)
     print(known_config_url)
     try:
         response = requests.request(method="GET", url=known_config_url)
@@ -118,7 +120,8 @@ def get_idp_url(host):
 
 def get_challenge(verifier_string=token_urlsafe(32)):
     digest = hashlib.sha256(verifier_string.encode('UTF-8')).digest()
-    challenge_string = base64.urlsafe_b64encode(digest).decode("UTF-8").replace('=', '')
+    challenge_string = base64.urlsafe_b64encode(
+        digest).decode("UTF-8").replace('=', '')
     return verifier_string, challenge_string
 
 
@@ -160,13 +163,13 @@ class SingleRequestHandler(BaseHTTPRequestHandler):
         set_request_path(self.path)
 
     def log_message(self, format, *args):
-        #pylint: disable=redefined-builtin
-        #pylint: disable=unused-argument
+        # pylint: disable=redefined-builtin
+        # pylint: disable=unused-argument
         return
 
 
 def get_authorization_code(client, auth_url, redirect_url, scope, state, challenge, port):
-    #pylint: disable=unused-variable
+    # pylint: disable=unused-variable
     (auth_req_uri, headers, body) = client.prepare_authorization_request(
         authorization_url=auth_url,
         redirect_url=redirect_url,
@@ -193,13 +196,16 @@ def get_authorization_code(client, auth_url, redirect_url, scope, state, challen
         authorization_code_response = \
             client.parse_request_uri_response(full_redirect_url, state=state)
     except OAuth2Error as err:
-        error_and_quit("OAuth Token Request error {error}".format(error=err.description))
+        error_and_quit("OAuth Token Request error {error}".format(
+            error=err.description))
     return authorization_code_response
 
 
 def send_auth_code_token_request(client, token_request_url, redirect_url, code, verifier):
-    token_request_body = client.prepare_request_body(code=code, redirect_uri=redirect_url)
-    data = "{body}&code_verifier={verifier}&client_secret=ZMQ8Q~ZkH7fwCR21iNxVCcvDzF8frfxojOCIgdeP".format(body=token_request_body, verifier=verifier)
+    token_request_body = client.prepare_request_body(
+        code=code, redirect_uri=redirect_url)
+    data = "{body}&code_verifier={verifier}&client_secret=<<placeholder>>".format(
+        body=token_request_body, verifier=verifier)
     return send_token_request(token_request_url, data)
 
 
@@ -210,7 +216,8 @@ def send_token_request(token_request_url, data):
     }
 
     click.echo("request token from {token_request_url}")
-    response = requests.request(method="POST", url=token_request_url, data=data, headers=headers)
+    response = requests.request(
+        method="POST", url=token_request_url, data=data, headers=headers)
     oauth_response = json.loads(response.text)
     return oauth_response
 
@@ -258,7 +265,8 @@ def check_and_refresh_access_token(hostname, access_token, refresh_token):
     click.echo("Attempting to refresh OAuth access token that expired on {expiration_time}"
                .format(expiration_time=expiration_time))
     oauth_response = send_refresh_token_request(hostname, refresh_token)
-    fresh_access_token, fresh_refresh_token = get_tokens_from_response(oauth_response)
+    fresh_access_token, fresh_refresh_token = get_tokens_from_response(
+        oauth_response)
     return fresh_access_token, fresh_refresh_token, True
 
 
@@ -284,10 +292,12 @@ def get_tokens(hostname, scope=None):
             challenge,
             REDIRECT_PORT)
     except OAuth2Error as err:
-        error_and_quit("OAuth Authorization Error: {error}".format(error=err.description))
+        error_and_quit("OAuth Authorization Error: {error}".format(
+            error=err.description))
 
     token_request_url = oauth_config["token_endpoint"]
     code = auth_response['code']
     oauth_response = \
-        send_auth_code_token_request(client, token_request_url, redirect_url, code, verifier)
+        send_auth_code_token_request(
+            client, token_request_url, redirect_url, code, verifier)
     return get_tokens_from_response(oauth_response)
